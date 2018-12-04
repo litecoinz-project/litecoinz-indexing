@@ -5,7 +5,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "rpc/client.h"
-
 #include "rpc/protocol.h"
 #include "util.h"
 
@@ -78,6 +77,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getrawtransaction", 1 },
     { "createrawtransaction", 0 },
     { "createrawtransaction", 1 },
+    { "createrawtransaction", 2 },
+    { "createrawtransaction", 3 },
     { "signrawtransaction", 1 },
     { "signrawtransaction", 2 },
     { "sendrawtransaction", 1 },
@@ -107,7 +108,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getaddressbalance", 0},
     { "getaddressdeltas", 0},
     { "getaddressutxos", 0},
-    { "getaddressmempool", 0},					  
+    { "getaddressmempool", 0},
     { "zcrawjoinsplit", 1 },
     { "zcrawjoinsplit", 2 },
     { "zcrawjoinsplit", 3 },
@@ -120,6 +121,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "z_listunspent", 0 },
     { "z_listunspent", 1 },
     { "z_listunspent", 2 },
+    { "z_listunspent", 3 },
     { "z_listunshielded", 0 },
     { "z_listunshielded", 1 },
     { "z_listunshielded", 2 },
@@ -127,6 +129,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "z_gettotalbalance", 0},
     { "z_gettotalbalance", 1},
     { "z_gettotalbalance", 2},
+    { "z_mergetoaddress", 0},
+    { "z_mergetoaddress", 2},
+    { "z_mergetoaddress", 3},
+    { "z_mergetoaddress", 4},
     { "z_sendmany", 1},
     { "z_sendmany", 2},
     { "z_sendmany", 3},
@@ -197,4 +203,3 @@ UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::s
 
     return params;
 }
-

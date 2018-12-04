@@ -14,20 +14,7 @@
 #include <leveldb/env.h>
 #include <leveldb/filter_policy.h>
 #include <memenv.h>
-
-void HandleError(const leveldb::Status& status)
-{
-    if (status.ok())
-        return;
-    LogPrintf("%s\n", status.ToString());
-    if (status.IsCorruption())
-        throw leveldb_error("Database corrupted");
-    if (status.IsIOError())
-        throw leveldb_error("Database I/O error");
-    if (status.IsNotFound())
-        throw leveldb_error("Database entry missing");
-    throw leveldb_error("Unknown database error");
-}
+#include <stdint.h>
 
 static leveldb::Options GetOptions(size_t nCacheSize, bool compression, int maxOpenFiles)
 {
@@ -45,7 +32,7 @@ static leveldb::Options GetOptions(size_t nCacheSize, bool compression, int maxO
     return options;
 }
 
-CLevelDBWrapper::CLevelDBWrapper(const boost::filesystem::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool compression, int maxOpenFiles)
+CDBWrapper::CDBWrapper(const boost::filesystem::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool obfuscate, bool compression, int maxOpenFiles)
 {
     penv = NULL;
     readoptions.verify_checksums = true;
@@ -61,17 +48,36 @@ CLevelDBWrapper::CLevelDBWrapper(const boost::filesystem::path& path, size_t nCa
         if (fWipe) {
             LogPrintf("Wiping LevelDB in %s\n", path.string());
             leveldb::Status result = leveldb::DestroyDB(path.string(), options);
-            HandleError(result);
+            dbwrapper_private::HandleError(result);
         }
         TryCreateDirectory(path);
         LogPrintf("Opening LevelDB in %s\n", path.string());
     }
     leveldb::Status status = leveldb::DB::Open(options, path.string(), &pdb);
-    HandleError(status);
+    dbwrapper_private::HandleError(status);
     LogPrintf("Opened LevelDB successfully\n");
+
+    // The base-case obfuscation key, which is a noop.
+    obfuscate_key = std::vector<unsigned char>(OBFUSCATE_KEY_NUM_BYTES, '\000');
+
+    bool key_exists = Read(OBFUSCATE_KEY_KEY, obfuscate_key);
+
+    if (!key_exists && obfuscate && IsEmpty()) {
+        // Initialize non-degenerate obfuscation if it won't upset
+        // existing, non-obfuscated data.
+        std::vector<unsigned char> new_key = CreateObfuscateKey();
+
+        // Write `new_key` so we don't obfuscate the key with itself
+        Write(OBFUSCATE_KEY_KEY, new_key);
+        obfuscate_key = new_key;
+
+        LogPrintf("Wrote new obfuscate key for %s: %s\n", path.string(), HexStr(obfuscate_key));
+    }
+
+    LogPrintf("Using obfuscation key for %s: %s\n", path.string(), HexStr(obfuscate_key));
 }
 
-CLevelDBWrapper::~CLevelDBWrapper()
+CDBWrapper::~CDBWrapper()
 {
     delete pdb;
     pdb = NULL;
@@ -83,9 +89,64 @@ CLevelDBWrapper::~CLevelDBWrapper()
     options.env = NULL;
 }
 
-bool CLevelDBWrapper::WriteBatch(CLevelDBBatch& batch, bool fSync)
+bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
 {
     leveldb::Status status = pdb->Write(fSync ? syncoptions : writeoptions, &batch.batch);
-    HandleError(status);
+    dbwrapper_private::HandleError(status);
     return true;
 }
+
+// Prefixed with null character to avoid collisions with other keys
+//
+// We must use a string constructor which specifies length so that we copy
+// past the null-terminator.
+const std::string CDBWrapper::OBFUSCATE_KEY_KEY("\000obfuscate_key", 14);
+
+const unsigned int CDBWrapper::OBFUSCATE_KEY_NUM_BYTES = 8;
+
+/**
+ * Returns a string (consisting of 8 random bytes) suitable for use as an
+ * obfuscating XOR key.
+ */
+std::vector<unsigned char> CDBWrapper::CreateObfuscateKey() const 
+{
+    unsigned char buff[OBFUSCATE_KEY_NUM_BYTES];
+    GetRandBytes(buff, OBFUSCATE_KEY_NUM_BYTES);
+    return std::vector<unsigned char>(&buff[0], &buff[OBFUSCATE_KEY_NUM_BYTES]);
+
+}
+
+bool CDBWrapper::IsEmpty()
+{
+    boost::scoped_ptr<CDBIterator> it(NewIterator());
+    it->SeekToFirst();
+    return !(it->Valid());
+}
+
+CDBIterator::~CDBIterator() { delete piter; }
+bool CDBIterator::Valid() { return piter->Valid(); }
+void CDBIterator::SeekToFirst() { piter->SeekToFirst(); }
+void CDBIterator::Next() { piter->Next(); }
+
+namespace dbwrapper_private {
+
+void HandleError(const leveldb::Status& status)
+{
+    if (status.ok())
+        return;
+    LogPrintf("%s\n", status.ToString());
+    if (status.IsCorruption())
+        throw dbwrapper_error("Database corrupted");
+    if (status.IsIOError())
+        throw dbwrapper_error("Database I/O error");
+    if (status.IsNotFound())
+        throw dbwrapper_error("Database entry missing");
+    throw dbwrapper_error("Unknown database error");
+}
+
+const std::vector<unsigned char>& GetObfuscateKey(const CDBWrapper &w)
+{
+    return w.obfuscate_key;
+}
+
+};
