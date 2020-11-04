@@ -20,7 +20,6 @@
 #include "hash.h"
 #include "key_io.h"
 #include "main.h"
-#include "metrics.h"
 #include "net.h"
 #include "pow.h"
 #include "primitives/transaction.h"
@@ -175,7 +174,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
                                     ? nMedianTimePast
                                     : pblock->GetBlockTime();
 
-            if (tx.IsCoinBase() || !IsFinalTx(tx, nHeight, nLockTimeCutoff) || IsExpiredTx(tx, nHeight))
+            if (tx.IsCoinBase() || !IsFinalTx(tx, nHeight, nLockTimeCutoff))
                 continue;
 
             COrphan* porphan = NULL;
@@ -493,8 +492,6 @@ static bool ProcessBlockFound(const CBlock* pblock)
     if (!ProcessNewBlock(state, NULL, pblock, true, NULL))
         return error("LitecoinzMiner: ProcessNewBlock, block not accepted");
 
-    TrackMinedBlock(pblock->GetHash());
-
     return true;
 }
 
@@ -528,7 +525,6 @@ void static BitcoinMiner()
             cancelSolver = true;
         }
     );
-    miningTimer.start();
 
     try {
         unique_ptr<equi> peq;
@@ -538,7 +534,6 @@ void static BitcoinMiner()
             if (chainparams.MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
-                miningTimer.stop();
                 do {
                     bool fvNodesEmpty;
                     {
@@ -549,7 +544,6 @@ void static BitcoinMiner()
                         break;
                     MilliSleep(1000);
                 } while (true);
-                miningTimer.start();
             }
 
             //
@@ -631,7 +625,6 @@ void static BitcoinMiner()
                     // Write the solution to the hash and compute the result.
                     LogPrint("pow", "- Checking solution against target\n");
                     pblock->nSolution = soln;
-                    solutionTargetChecks.increment();
 
                     if (UintToArith256(pblock->GetHash()) > hashTarget) {
                         return false;
@@ -655,7 +648,6 @@ void static BitcoinMiner()
                     // In regression test mode, stop mining after a block is found.
                     if (chainparams.MineBlocksOnDemand()) {
                         // Increment here because throwing skips the call below
-                        ehSolverRuns.increment();
                         throw boost::thread_interrupted();
                     }
 
@@ -682,7 +674,6 @@ void static BitcoinMiner()
                         eq.showbsizes(r);
                     }
                     eq.digitK(0);
-                    ehSolverRuns.increment();
 
                     // Convert solution indices to byte array (decompress) and pass it to validBlock method.
                     for (size_t s = 0; s < eq.nsols; s++) {
@@ -703,7 +694,6 @@ void static BitcoinMiner()
                     try {
                         // If we find a valid block, we rebuild
                         bool found = EhOptimisedSolve(n, k, curr_state, validBlock, cancelled);
-                        ehSolverRuns.increment();
                         if (found) {
                             break;
                         }
@@ -739,19 +729,16 @@ void static BitcoinMiner()
     }
     catch (const boost::thread_interrupted&)
     {
-        miningTimer.stop();
         c.disconnect();
         LogPrintf("LitecoinzMiner terminated\n");
         throw;
     }
     catch (const std::runtime_error &e)
     {
-        miningTimer.stop();
         c.disconnect();
         LogPrintf("LitecoinzMiner runtime error: %s\n", e.what());
         return;
     }
-    miningTimer.stop();
     c.disconnect();
 }
 

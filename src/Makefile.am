@@ -74,9 +74,6 @@ endif
 $(LIBSNARK): $(wildcard snark/src/*)
 	$(AM_V_at) CC="$(CC)" CXX="$(CXX)" AR="$(AR)" CXXFLAGS="$(LIBSNARK_CXXFLAGS)" $(MAKE) $(AM_MAKEFLAGS) -C snark/ DEPINST="$(LIBSNARK_DEPINST)" $(LIBSNARK_CONFIG_FLAGS) OPTFLAGS="-O2 -march=x86-64"
 
-libsnark-tests: $(wildcard snark/src/*)
-	$(AM_V_at) CC="$(CC)" CXX="$(CXX)" AR="$(AR)" CXXFLAGS="$(LIBSNARK_CXXFLAGS)" $(MAKE) $(AM_MAKEFLAGS) -C snark/ check DEPINST="$(LIBSNARK_DEPINST)" $(LIBSNARK_CONFIG_FLAGS) OPTFLAGS="-O2 -march=x86-64"
-
 $(LIBUNIVALUE): $(wildcard univalue/lib/*) $(wildcard univalue/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
@@ -168,7 +165,6 @@ BITCOIN_CORE_H = \
   main.h \
   memusage.h \
   merkleblock.h \
-  metrics.h \
   miner.h \
   mruset.h \
   net.h \
@@ -265,7 +261,6 @@ libbitcoin_server_a_SOURCES = \
   dbwrapper.cpp \
   main.cpp \
   merkleblock.cpp \
-  metrics.cpp \
   miner.cpp \
   net.cpp \
   noui.cpp \
@@ -601,7 +596,3 @@ endif
 	@test -f $(PROTOC)
 	$(AM_V_GEN) $(PROTOC) --cpp_out=$(@D) --proto_path=$(abspath $(<D) $<)
 
-if ENABLE_TESTS
-include Makefile.test.include
-include Makefile.gtest.include
-endif

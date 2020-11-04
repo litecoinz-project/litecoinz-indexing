@@ -424,25 +424,6 @@ void CTxMemPool::removeConflicts(const CTransaction &tx, std::list<CTransaction>
     }
 }
 
-void CTxMemPool::removeExpired(unsigned int nBlockHeight)
-{
-    // Remove expired txs from the mempool
-    LOCK(cs);
-    list<CTransaction> transactionsToRemove;
-    for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++)
-    {
-        const CTransaction& tx = it->GetTx();
-        if (IsExpiredTx(tx, nBlockHeight)) {
-            transactionsToRemove.push_back(tx);
-        }
-    }
-    for (const CTransaction& tx : transactionsToRemove) {
-        list<CTransaction> removed;
-        remove(tx, removed, true);
-        LogPrint("mempool", "Removing expired txid: %s\n", tx.GetHash().ToString());
-    }
-}
-
 /**
  * Called when a block is connected. Removes from mempool and updates the miner fee estimator.
  */

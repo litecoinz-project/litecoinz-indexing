@@ -42,8 +42,8 @@ OSX_PACKAGING = $(OSX_DEPLOY_SCRIPT) $(OSX_FANCY_PLIST) $(OSX_INSTALLER_ICONS) $
   $(top_srcdir)/contrib/macdeploy/detached-sig-apply.sh \
   $(top_srcdir)/contrib/macdeploy/detached-sig-create.sh
 
-COVERAGE_INFO = baseline_filtered_combined.info baseline.info block_test.info \
-  leveldb_baseline.info test_bitcoin_filtered.info total_coverage.info \
+COVERAGE_INFO = baseline_filtered_combined.info baseline.info \
+  leveldb_baseline.info total_coverage.info \
   baseline_filtered.info block_test_filtered.info \
   leveldb_baseline_filtered.info test_bitcoin_coverage.info test_bitcoin.info \
   litecoinz-gtest.info litecoinz-gtest_filtered.info litecoinz-gtest_coverage.info
@@ -208,13 +208,6 @@ litecoinz-gtest_filtered.info: litecoinz-gtest.info
                       "$(abs_builddir)/src/wallet/test/*" \
                       -o $@
 
-block_test.info: test_bitcoin_filtered.info
-	$(MKDIR_P) qa/tmp
-	-@TIMEOUT=15 qa/pull-tester/run-litecoinzd-for-test.sh $(JAVA) -jar $(JAVA_COMPARISON_TOOL) qa/tmp/compTool 0
-	$(LCOV) -c -d $(abs_builddir)/src --t BitcoinJBlockTest -o $@
-	$(LCOV) -z -d $(abs_builddir)/src
-	$(LCOV) -z -d $(abs_builddir)/src/leveldb
-
 block_test_filtered.info: block_test.info
 	$(LCOV) -r $< "/usr/include/*" \
                       "$(abs_builddir)/depends/x86_64-unknown-linux-gnu/include/*.h" \
@@ -254,13 +247,10 @@ cov: test_bitcoin.coverage/.dirstamp cov-litecoinz total.coverage/.dirstamp
 
 endif
 
-dist_bin_SCRIPTS = zcutil/fetch-params.sh
-dist_noinst_SCRIPTS = autogen.sh zcutil/build-debian-package.sh zcutil/build.sh
+dist_bin_SCRIPTS =
+dist_noinst_SCRIPTS = autogen.sh
 
-EXTRA_DIST = $(top_srcdir)/share/genbuild.sh qa/pull-tester/rpc-tests.sh qa/pull-tester/run-litecoinz-cli qa/rpc-tests qa/litecoinz $(DIST_DOCS) $(BIN_CHECKS)
-
-install-exec-hook:
-	mv $(DESTDIR)$(bindir)/fetch-params.sh $(DESTDIR)$(bindir)/litecoinz-fetch-params
+EXTRA_DIST = $(top_srcdir)/share/genbuild.sh $(DIST_DOCS) $(BIN_CHECKS)
 
 CLEANFILES = $(OSX_DMG) $(BITCOIN_WIN_INSTALLER)
 
@@ -269,4 +259,4 @@ CLEANFILES = $(OSX_DMG) $(BITCOIN_WIN_INSTALLER)
 DISTCHECK_CONFIGURE_FLAGS = --enable-man
 
 clean-local:
-	rm -rf test_bitcoin.coverage/ litecoinz-gtest.coverage/ total.coverage/ qa/tmp/ cache/ $(OSX_APP)
+	rm -rf test_bitcoin.coverage/ litecoinz-gtest.coverage/ total.coverage/ cache/ $(OSX_APP)

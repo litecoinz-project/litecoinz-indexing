@@ -863,30 +863,6 @@ static bool AttemptToEvictConnection(bool fPreferNewConnection) {
         height = chainActive.Height();
     }
 
-    const Consensus::Params& params = Params().GetConsensus();
-    auto nextEpoch = NextEpoch(height, params);
-    if (nextEpoch) {
-        auto idx = nextEpoch.get();
-        int nActivationHeight = params.vUpgrades[idx].nActivationHeight;
-
-        if (nActivationHeight > 0 &&
-            height < nActivationHeight &&
-            height >= nActivationHeight - NETWORK_UPGRADE_PEER_PREFERENCE_BLOCK_PERIOD)
-        {
-            // Find any nodes which don't support the protocol version for the next upgrade
-            for (const CNodeRef &node : vEvictionCandidates) {
-                if (node->nVersion < params.vUpgrades[idx].nProtocolVersion) {
-                    vTmpEvictionCandidates.push_back(node);
-                }
-            }
-
-            // Prioritize these nodes by replacing eviction set with them
-            if (vTmpEvictionCandidates.size() > 0) {
-                vEvictionCandidates = vTmpEvictionCandidates;
-            }
-        }
-    }
-
     // Deterministically select 4 peers to protect by netgroup.
     // An attacker cannot predict which netgroups will be protected.
     static CompareNetGroupKeyed comparerNetGroupKeyed;

@@ -14,7 +14,6 @@
 #endif
 #include "init.h"
 #include "main.h"
-#include "metrics.h"
 #include "miner.h"
 #include "net.h"
 #include "pow.h"
@@ -74,24 +73,6 @@ int64_t GetNetworkHashPS(int lookup, int height) {
     int64_t timeDiff = maxTime - minTime;
 
     return (int64_t)(workDiff.getdouble() / timeDiff);
-}
-
-UniValue getlocalsolps(const UniValue& params, bool fHelp)
-{
-    if (fHelp)
-        throw runtime_error(
-            "getlocalsolps\n"
-            "\nReturns the average local solutions per second since this node was started.\n"
-            "This is the same information shown on the metrics screen (if enabled).\n"
-            "\nResult:\n"
-            "xxx.xxxxx     (numeric) Solutions per second average\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getlocalsolps", "")
-            + HelpExampleRpc("getlocalsolps", "")
-       );
-
-    LOCK(cs_main);
-    return GetLocalSolPS();
 }
 
 UniValue getnetworksolps(const UniValue& params, bool fHelp)
@@ -252,11 +233,9 @@ UniValue generate(const UniValue& params, bool fHelp)
             std::function<bool(std::vector<unsigned char>)> validBlock =
                     [&pblock](std::vector<unsigned char> soln) {
                 pblock->nSolution = soln;
-                solutionTargetChecks.increment();
                 return CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus());
             };
             bool found = EhBasicSolveUncancellable(n, k, curr_state, validBlock);
-            ehSolverRuns.increment();
             if (found) {
                 goto endloop;
             }
@@ -346,7 +325,6 @@ UniValue getmininginfo(const UniValue& params, bool fHelp)
             "  \"errors\": \"...\"          (string) Current errors\n"
             "  \"generate\": true|false     (boolean) If the generation is on or off (see getgenerate or setgenerate calls)\n"
             "  \"genproclimit\": n          (numeric) The processor limit for generation. -1 if no generation. (see getgenerate or setgenerate calls)\n"
-            "  \"localsolps\": xxx.xxxxx    (numeric) The average local solution rate in Sol/s since this node was started\n"
             "  \"networksolps\": x          (numeric) The estimated network solution rate in Sol/s\n"
             "  \"pooledtx\": n              (numeric) The size of the mem pool\n"
             "  \"testnet\": true|false      (boolean) If using testnet or not\n"
@@ -367,7 +345,6 @@ UniValue getmininginfo(const UniValue& params, bool fHelp)
     obj.push_back(Pair("difficulty",       (double)GetNetworkDifficulty()));
     obj.push_back(Pair("errors",           GetWarnings("statusbar")));
     obj.push_back(Pair("genproclimit",     (int)GetArg("-genproclimit", -1)));
-    obj.push_back(Pair("localsolps"  ,     getlocalsolps(params, false)));
     obj.push_back(Pair("networksolps",     getnetworksolps(params, false)));
     obj.push_back(Pair("networkhashps",    getnetworksolps(params, false)));
     obj.push_back(Pair("pooledtx",         (uint64_t)mempool.size()));
@@ -913,7 +890,6 @@ UniValue getblocksubsidy(const UniValue& params, bool fHelp)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafeMode
   //  --------------------- ------------------------  -----------------------  ----------
-    { "mining",             "getlocalsolps",          &getlocalsolps,          true  },
     { "mining",             "getnetworksolps",        &getnetworksolps,        true  },
     { "mining",             "getnetworkhashps",       &getnetworkhashps,       true  },
     { "mining",             "getmininginfo",          &getmininginfo,          true  },

@@ -24,7 +24,6 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     //   txNew.nVersion = OVERWINTER_TX_VERSION
     //   txNew.fOverwintered = true
     //   txNew.nVersionGroupId = OVERWINTER_VERSION_GROUP_ID
-    //   txNew.nExpiryHeight = <default value>
     CMutableTransaction txNew;
     txNew.nVersion = 1;
     txNew.vin.resize(1);
@@ -81,7 +80,7 @@ public:
         strNetworkID = "main";
         strCurrencyUnits = "LTZ";
         bip44CoinType = 221; // As registered in https://github.com/satoshilabs/slips/blob/master/slip-0044.md
-        consensus.fCoinbaseMustBeProtected = true;
+        consensus.fCoinbaseMustBeProtected = false;
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.nMajorityEnforceBlockUpgrade = 750;
         consensus.nMajorityRejectBlockOutdated = 950;
@@ -101,7 +100,7 @@ public:
             Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT;
         consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nProtocolVersion = 170005;
         consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nActivationHeight = 190000;
-        consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nProtocolVersion = 170007;
+        consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nProtocolVersion = 170015;
         consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nActivationHeight = 190000;
         consensus.nEquihashForkHeight = 95000;
 
@@ -204,7 +203,7 @@ public:
         strNetworkID = "test";
         strCurrencyUnits = "TLZ";
         bip44CoinType = 1;
-        consensus.fCoinbaseMustBeProtected = true;
+        consensus.fCoinbaseMustBeProtected = false;
         consensus.nSubsidyHalvingInterval = 840000;
         consensus.nMajorityEnforceBlockUpgrade = 51;
         consensus.nMajorityRejectBlockOutdated = 75;
@@ -227,7 +226,7 @@ public:
             Consensus::NetworkUpgrade::NO_ACTIVATION_HEIGHT;
         consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nProtocolVersion = 170005;
         consensus.vUpgrades[Consensus::UPGRADE_OVERWINTER].nActivationHeight = 4000;
-        consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nProtocolVersion = 170007;
+        consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nProtocolVersion = 170015;
         consensus.vUpgrades[Consensus::UPGRADE_SAPLING].nActivationHeight = 4000;
         consensus.nEquihashForkHeight = 435;
 

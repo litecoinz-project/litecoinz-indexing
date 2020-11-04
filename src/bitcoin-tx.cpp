@@ -173,15 +173,6 @@ static void MutateTxVersion(CMutableTransaction& tx, const std::string& cmdVal)
     tx.nVersion = (int) newVersion;
 }
 
-static void MutateTxExpiry(CMutableTransaction& tx, const std::string& cmdVal)
-{
-    int64_t newExpiry = atoi64(cmdVal);
-    if (newExpiry >= TX_EXPIRY_HEIGHT_THRESHOLD) {
-        throw std::runtime_error("Invalid TX expiry requested");
-    }
-    tx.nExpiryHeight = (int) newExpiry;
-}
-
 static void MutateTxLocktime(CMutableTransaction& tx, const std::string& cmdVal)
 {
     int64_t newLocktime = atoi64(cmdVal);
@@ -522,8 +513,6 @@ static void MutateTx(CMutableTransaction& tx, const std::string& command,
         MutateTxVersion(tx, commandVal);
     else if (command == "locktime")
         MutateTxLocktime(tx, commandVal);
-    else if (command == "expiry")
-        MutateTxExpiry(tx, commandVal);
 
     else if (command == "delin")
         MutateTxDelInput(tx, commandVal);
